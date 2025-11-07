@@ -1,585 +1,569 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!-- Chosen Palette: Warm Neutral & Indigo Accent -->
+<!-- Application Structure Plan: The structure evolves into an interactive Pipeline Control Center. It maintains the Header, Kanban Board (for status updates), and Analytics/Charts, but adds a high-level Forecasting Metric and a new interactive element: the Lead Detail Modal. The Kanban cards are now clickable to open this Modal, which centralizes all deep-dive activities: Editing lead data, viewing Automated Score, and tracking all past Activities (presented in a list/timeline format). This structure ensures the Kanban board remains clean and focused on status transitions (improving UX), while the modal allows users to explore complexity and manage data. -->
+<!-- Visualization & Content Choices: The core Kanban board now incorporates the Automated Lead Score (calculated via JS) for quick prioritization. A new Forecast Revenue panel displays a key metric (Expected Value, calculated based on lead value and status probability). The Lead Detail Modal features an Activity Timeline (HTML/CSS list) and the Lead Edit Form (HTML/JS data binding), providing functional tools for data management. Chart.js visualizations remain for high-level pipeline distribution. NO SVG, NO Mermaid JS. -->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2575.7">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lead Funnel Dashboard V2.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <style>
+        .font-inter { font-family: 'Inter', sans-serif; }
+        .kanban-col {
+            min-height: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .kanban-col::-webkit-scrollbar { display: none; }
+        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05); }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        .modal {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .score-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            font-weight: bold;
+            font-size: 10px;
+            line-height: 1;
+            border-radius: 9999px;
+            color: white;
+            padding: 2px;
+        }
+        .bg-score-low { background-color: #fca5a5; } /* Red-300 */
+        .bg-score-medium { background-color: #fcd34d; } /* Amber-400 */
+        .bg-score-high { background-color: #34d399; } /* Green-400 */
+
+        @media (max-width: 640px) {
+            .kanban-col { min-height: 300px; max-height: 400px; }
+            .chart-container { height: 250px; }
+        }
+    </style>
 </head>
-<body>
-<p class="p1">&lt;!-- Chosen Palette: Warm Neutral &amp; Indigo Accent --&gt;</p>
-<p class="p1">&lt;!-- Application Structure Plan: The structure evolves into an interactive Pipeline Control Center. It maintains the Header, Kanban Board (for status updates), and Analytics/Charts, but adds a high-level Forecasting Metric and a new interactive element: the Lead Detail Modal. The Kanban cards are now clickable to open this Modal, which centralizes all deep-dive activities: Editing lead data, viewing Automated Score, and tracking all past Activities (presented in a list/timeline format). This structure ensures the Kanban board remains clean and focused on status transitions (improving UX), while the modal allows users to explore complexity and manage data. --&gt;</p>
-<p class="p1">&lt;!-- Visualization &amp; Content Choices: The core Kanban board now incorporates the Automated Lead Score (calculated via JS) for quick prioritization. A new Forecast Revenue panel displays a key metric (Expected Value, calculated based on lead value and status probability). The Lead Detail Modal features an Activity Timeline (HTML/CSS list) and the Lead Edit Form (HTML/JS data binding), providing functional tools for data management. Chart.js visualizations remain for high-level pipeline distribution. NO SVG, NO Mermaid JS. --&gt;</p>
-<p class="p1">&lt;!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. --&gt;</p>
-<p class="p1">&lt;!DOCTYPE html&gt;</p>
-<p class="p1">&lt;html lang="en"&gt;</p>
-<p class="p1">&lt;head&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;title&gt;Lead Funnel Dashboard V2.0&lt;/title&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;script src="https://cdn.tailwindcss.com"&gt;&lt;/script&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"&gt;&lt;/script&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;style&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.font-inter { font-family: 'Inter', sans-serif; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.kanban-col {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>min-height: 500px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>max-height: 80vh;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>overflow-y: auto;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>-ms-overflow-style: none;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>scrollbar-width: none;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.kanban-col::-webkit-scrollbar { display: none; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05); }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.chart-container {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>position: relative;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>width: 100%;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>max-width: 600px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>margin-left: auto;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>margin-right: auto;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>height: 350px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>max-height: 400px;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.modal {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>transition: opacity 0.3s ease, visibility 0.3s ease;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.score-badge {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>display: inline-flex;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>align-items: center;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>justify-content: center;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>width: 24px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>height: 24px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-weight: bold;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-size: 10px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>line-height: 1;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 9999px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>color: white;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>padding: 2px;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.bg-score-low { background-color: #fca5a5; } /* Red-300 */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.bg-score-medium { background-color: #fcd34d; } /* Amber-400 */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.bg-score-high { background-color: #34d399; } /* Green-400 */</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>@media (max-width: 640px) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>.kanban-col { min-height: 300px; max-height: 400px; }</p>
-<p class="p1"><span class="Apple-converted-space">            </span>.chart-container { height: 250px; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/style&gt;</p>
-<p class="p1">&lt;/head&gt;</p>
-<p class="p1">&lt;body class="bg-gray-50 font-inter text-gray-800"&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="app" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;header class="mb-8"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;h1 class="text-4xl font-extrabold text-indigo-700"&gt;Lead Pipeline Control Center V2.0&lt;/h1&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;p class="mt-2 text-lg text-gray-500"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>Manage, score, and forecast your lead pipeline with detailed activity tracking.</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/header&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;!-- Pipeline Forecasting Panel --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;section id="forecasting-panel" class="bg-indigo-600 text-white p-4 sm:p-6 rounded-xl shadow-lg mb-8 flex flex-col sm:flex-row justify-between items-center"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;span class="text-sm font-medium opacity-80"&gt;Expected Pipeline Value Forecast&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;p id="forecast-value" class="text-3xl sm:text-4xl font-extrabold mt-1"&gt;$0&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="mt-3 sm:mt-0 text-right"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;span class="text-sm font-medium opacity-80"&gt;Total Leads in Pipeline&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;p id="total-leads" class="text-3xl sm:text-4xl font-extrabold mt-1"&gt;0&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/section&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;section id="kanban-overview" class="bg-white p-6 sm:p-8 rounded-xl shadow-lg mb-8"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;h2 class="text-2xl font-bold text-gray-700 mb-4 border-b pb-2"&gt;Interactive Pipeline Board&lt;/h2&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;p class="text-gray-600 mb-6"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>Click any card to view activities and edit details. Use the action buttons to manage lead status.</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div id="kanban-board" class="grid grid-cols-2 md:grid-cols-5 gap-4"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div id="col-New" class="p-3 bg-gray-100 rounded-lg kanban-col shadow-inner"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;h3 class="text-base font-semibold text-gray-700 mb-3 flex items-center"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;span class="text-lg mr-2"&gt;👤&lt;/span&gt; New Lead (MQL)</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="space-y-3" data-status="New"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div id="col-Working" class="p-3 bg-blue-100 rounded-lg kanban-col shadow-inner"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;h3 class="text-base font-semibold text-blue-700 mb-3 flex items-center"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;span class="text-lg mr-2"&gt;📞&lt;/span&gt; Working (SQL)</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="space-y-3" data-status="Working"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div id="col-Proposal" class="p-3 bg-yellow-100 rounded-lg kanban-col shadow-inner"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;h3 class="text-base font-semibold text-yellow-700 mb-3 flex items-center"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;span class="text-lg mr-2"&gt;📄&lt;/span&gt; Proposal Stage</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="space-y-3" data-status="Proposal"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div id="col-Won" class="p-3 bg-green-100 rounded-lg kanban-col shadow-inner"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;h3 class="text-base font-semibold text-green-700 mb-3 flex items-center"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;span class="text-lg mr-2"&gt;✅&lt;/span&gt; Closed Won</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="space-y-3" data-status="Won"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div id="col-Lost" class="p-3 bg-red-100 rounded-lg kanban-col shadow-inner"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;h3 class="text-base font-semibold text-red-700 mb-3 flex items-center"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;span class="text-lg mr-2"&gt;❌&lt;/span&gt; Closed Lost</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="space-y-3" data-status="Lost"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/section&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;section id="analytics-section" class="grid md:grid-cols-2 gap-8 mb-8"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;h2 class="text-2xl font-bold text-gray-700 mb-4 border-b pb-2"&gt;Pipeline Distribution&lt;/h2&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;p class="text-gray-600 mb-4"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>This bar chart shows the current count of active leads in each stage, offering an immediate snapshot of pipeline health.</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="chart-container"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;canvas id="pipelineBarChart"&gt;&lt;/canvas&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;h2 class="text-2xl font-bold text-gray-700 mb-4 border-b pb-2"&gt;Overall Outcome Ratio&lt;/h2&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;p class="text-gray-600 mb-4"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>The doughnut chart illustrates the overall ratio of Won vs. Lost leads, reflecting final conversion effectiveness.</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="chart-container"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;canvas id="conversionDoughnutChart"&gt;&lt;/canvas&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/section&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;section id="insights-section" class="bg-white p-6 sm:p-8 rounded-xl shadow-lg"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;h2 class="text-2xl font-bold text-gray-700 mb-4 border-b pb-2"&gt;Key Report Insights&lt;/h2&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="grid md:grid-cols-3 gap-6 text-sm"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="p-4 bg-indigo-50 rounded-lg border border-indigo-200"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;h3 class="font-semibold text-indigo-700 mb-1 flex items-center"&gt;&lt;span class="mr-2 text-xl"&gt;💡&lt;/span&gt; Finding 1: Qualification&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;p class="text-gray-700"&gt;Leads moved from 'New' to 'Working' within 48 hours show a 35% higher close rate. Speed is critical for MQL-to-SQL conversion.&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="p-4 bg-indigo-50 rounded-lg border border-indigo-200"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;h3 class="font-semibold text-indigo-700 mb-1 flex items-center"&gt;&lt;span class="mr-2 text-xl"&gt;📊&lt;/span&gt; Finding 2: Proposal Impact&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;p class="text-gray-700"&gt;The primary factor for 'Closed Lost' is high price sensitivity at the 'Proposal' stage. Need better pre-qualification on budget.&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="p-4 bg-indigo-50 rounded-lg border border-indigo-200"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;h3 class="font-semibold text-indigo-700 mb-1 flex items-center"&gt;&lt;span class="mr-2 text-xl"&gt;🚀&lt;/span&gt; Recommendation&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;p class="text-gray-700"&gt;Implement an automated follow-up sequence for all 'Closed Lost' leads to transition them into a 90-day 'Nurture' campaign.&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/section&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;!-- Lead Detail/Edit Modal --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="leadDetailModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 invisible opacity-0"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="bg-white rounded-xl w-full max-w-2xl shadow-2xl transform transition-all overflow-y-auto max-h-[90vh]"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="p-6"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="flex justify-between items-start border-b pb-3 mb-4"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;h3 class="text-2xl font-bold text-gray-700" id="modal-lead-name"&gt;Lead Detail&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;span class="text-xl font-bold"&gt;&amp;times;&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="grid md:grid-cols-2 gap-6"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;!-- Edit Form --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;h4 class="text-xl font-semibold text-indigo-600 mb-3"&gt;Edit Lead Information&lt;/h4&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;form id="editLeadForm" onsubmit="event.preventDefault(); saveLeadDetails();"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;input type="hidden" id="edit-lead-id"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;div class="space-y-4"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>&lt;div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;label for="edit-name" class="block text-sm font-medium text-gray-700"&gt;Company Name&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;input type="text" id="edit-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" required&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>&lt;div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;label for="edit-source" class="block text-sm font-medium text-gray-700"&gt;Source&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;select id="edit-source" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" required&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                        </span>&lt;option value="Webinar"&gt;Webinar&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                        </span>&lt;option value="Referral"&gt;Referral&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                        </span>&lt;option value="Organic Search"&gt;Organic Search&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                        </span>&lt;option value="Paid Ads"&gt;Paid Ads&lt;/option&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;/select&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>&lt;div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;label for="edit-value" class="block text-sm font-medium text-gray-700"&gt;Value ($)&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;input type="number" id="edit-value" min="0" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" required&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>&lt;div class="p-3 bg-gray-100 rounded-lg flex justify-between items-center"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;span class="text-sm font-medium text-gray-700"&gt;Automated Score:&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;span id="modal-score" class="text-lg font-bold text-indigo-600"&gt;--&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>&lt;div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                        </span>Save Changes</p>
-<p class="p1"><span class="Apple-converted-space">                                    </span>&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;/form&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;!-- Activity Tracking Timeline --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;h4 class="text-xl font-semibold text-indigo-600 mb-3"&gt;Activity Timeline&lt;/h4&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;div id="activity-timeline" class="space-y-4 max-h-80 overflow-y-auto p-2"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;!-- Activities will be rendered here --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;h4 class="text-lg font-semibold text-gray-700 mt-4 mb-2"&gt;Add New Activity&lt;/h4&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;form id="addActivityForm" onsubmit="event.preventDefault(); addActivity(this);"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;div class="space-y-2"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>&lt;input type="text" name="activityType" placeholder="Type (e.g., Call, Email, Meeting)" class="block w-full border border-gray-300 rounded-md p-2 text-sm" required&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>&lt;input type="text" name="activityDescription" placeholder="Description of action" class="block w-full border border-gray-300 rounded-md p-2 text-sm" required&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>&lt;button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                    </span>Add Activity</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;/form&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;script&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const INITIAL_LEADS = [</p>
-<p class="p1"><span class="Apple-converted-space">            </span>{ id: 1, name: 'Alpha Solutions', status: 'Working', source: 'Webinar', value: 12000, activities: [{date: '2024-10-01', type: 'Call', description: 'Initial contact call. Identified need for service A.'}, {date: '2024-10-05', type: 'Email', description: 'Sent proposal overview.'}] },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>{ id: 2, name: 'Beta Systems Inc.', status: 'New', source: 'Referral', value: 8500, activities: [{date: '2024-10-10', type: 'Call', description: 'Referral warm lead. Needs follow-up with demo.'}] },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>{ id: 3, name: 'Gamma Corp', status: 'Proposal', source: 'Organic Search', value: 25000, activities: [{date: '2024-10-15', type: 'Meeting', description: 'Presentation of full proposal and pricing.'}, {date: '2024-10-20', type: 'Email', description: 'Followed up with case studies.'}] },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>{ id: 4, name: 'Delta Technologies', status: 'Working', source: 'Paid Ads', value: 5000, activities: [{date: '2024-09-25', type: 'Email', description: 'Sent initial discovery questions.'}] },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>{ id: 5, name: 'Epsilon Group', status: 'Won', source: 'Webinar', value: 18000, activities: [{date: '2024-09-01', type: 'Won', description: 'Contract signed. Onboarding started.'}] },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>{ id: 6, name: 'Zeta Innovations', status: 'Lost', source: 'Referral', value: 9000, activities: [{date: '2024-09-15', type: 'Lost', description: 'Lost to competitor due to budget constraints.'}] },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>{ id: 7, name: 'Eta Ventures', status: 'New', source: 'Organic Search', value: 3000, activities: [] },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>{ id: 8, name: 'Theta Holdings', status: 'Working', source: 'Referral', value: 45000, activities: [{date: '2024-10-28', type: 'Meeting', description: 'Discovery meeting. High potential lead.'}] },</p>
-<p class="p1"><span class="Apple-converted-space">        </span>];</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>let leads = INITIAL_LEADS.map(lead =&gt; ({</p>
-<p class="p1"><span class="Apple-converted-space">            </span>...lead,</p>
-<p class="p1"><span class="Apple-converted-space">            </span>id: lead.id,</p>
-<p class="p1"><span class="Apple-converted-space">            </span>score: calculateLeadScore(lead.source, lead.value) // Calculate initial score</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}));</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>let pipelineBarChart;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>let conversionDoughnutChart;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>let currentEditingLeadId = null;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const STATUS_MAP = {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>New: { label: 'Working', next: 'Working', prev: null, color: 'text-gray-700', bg: 'bg-gray-100', prob: 0.10 },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>Working: { label: 'Proposal', next: 'Proposal', prev: 'New', color: 'text-blue-700', bg: 'bg-blue-100', prob: 0.40 },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>Proposal: { label: 'Finalize', next: ['Won', 'Lost'], prev: 'Working', color: 'text-yellow-700', bg: 'bg-yellow-100', prob: 0.75 },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>Won: { label: 'Archived', next: null, prev: 'Proposal', color: 'text-green-700', bg: 'bg-green-100', prob: 1.00 },</p>
-<p class="p1"><span class="Apple-converted-space">            </span>Lost: { label: 'Archived', next: null, prev: 'Proposal', color: 'text-red-700', bg: 'bg-red-100', prob: 0.00 }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const abbreviateLabel = (label, maxChars = 16) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (label.length &lt;= maxChars) return label;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>let words = label.split(' ');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>let lines = [];</p>
-<p class="p1"><span class="Apple-converted-space">            </span>let currentLine = '';</p>
-<p class="p1"><span class="Apple-converted-space">            </span>words.forEach(word =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>if ((currentLine + ' ' + word).trim().length &gt; maxChars) {</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>lines.push(currentLine.trim());</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>currentLine = word;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>currentLine += ' ' + word;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>}</p>
-<p class="p1"><span class="Apple-converted-space">            </span>});</p>
-<p class="p1"><span class="Apple-converted-space">            </span>lines.push(currentLine.trim());</p>
-<p class="p1"><span class="Apple-converted-space">            </span>return lines;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>function getScoreColor(score) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (score &gt; 30) return 'bg-score-high';</p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (score &gt; 15) return 'bg-score-medium';</p>
-<p class="p1"><span class="Apple-converted-space">            </span>return 'bg-score-low';</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>function calculateLeadScore(source, value) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>let score = 0;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const valueNum = Number(value);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>// Source Scoring</p>
-<p class="p1"><span class="Apple-converted-space">            </span>switch (source) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>case 'Referral': score += 20; break;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>case 'Organic Search': score += 15; break;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>case 'Webinar': score += 10; break;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>case 'Paid Ads': score += 5; break;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>// Value Scoring</p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (valueNum &gt; 20000) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>score += 20;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>} else if (valueNum &gt;= 10000) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>score += 10;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>score += 5;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>return score;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const renderKanban = () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>document.querySelectorAll('#kanban-board &gt; div &gt; div').forEach(container =&gt; container.innerHTML = '');</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>leads.forEach(lead =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const colContainer = document.querySelector(`[data-status="${lead.status}"]`);</p>
-<p class="p1"><span class="Apple-converted-space">                </span>if (!colContainer) return;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>const statusConfig = STATUS_MAP[lead.status];</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const card = document.createElement('div');</p>
-<p class="p1"><span class="Apple-converted-space">                </span>card.className = `p-3 rounded-lg card-shadow text-sm ${statusConfig.bg} border-l-4 border-indigo-500 cursor-pointer hover:shadow-lg transition`;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>card.setAttribute('onclick', `openEditModal(${lead.id})`);</p>
-<p class="p1"><span class="Apple-converted-space">                </span>card.innerHTML = `</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="flex justify-between items-center"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;p class="font-semibold text-gray-900"&gt;${lead.name}&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;span class="score-badge ${getScoreColor(lead.score)}"&gt;${lead.score}&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;p class="text-xs text-gray-500 mt-0.5"&gt;Value: $${lead.value.toLocaleString()}&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="mt-3 flex flex-wrap gap-2"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>${lead.status !== 'Won' &amp;&amp; lead.status !== 'Lost' ? `</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;button onclick="event.stopPropagation(); moveLead(${lead.id}, '${statusConfig.next}')"</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>class="flex-grow px-2 py-1 text-xs font-medium text-white bg-indigo-500 rounded-md hover:bg-indigo-600 transition"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>Move to ${STATUS_MAP[statusConfig.next]?.label || statusConfig.next}</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>` : ''}</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>${lead.status !== 'Won' &amp;&amp; lead.status !== 'Lost' &amp;&amp; statusConfig.prev ? `</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;button onclick="event.stopPropagation(); moveLead(${lead.id}, '${statusConfig.prev}')"</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>class="px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>Back</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>` : ''}</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>${lead.status === 'Proposal' ? `</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;button onclick="event.stopPropagation(); moveLead(${lead.id}, 'Won')"</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>class="flex-grow px-2 py-1 text-xs font-medium text-white bg-green-500 rounded-md hover:bg-green-600 transition"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>Win</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;button onclick="event.stopPropagation(); moveLead(${lead.id}, 'Lost')"</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>class="flex-grow px-2 py-1 text-xs font-medium text-white bg-red-500 rounded-md hover:bg-red-600 transition"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>Lose</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>` : ''}</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>`;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>colContainer.appendChild(card);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>});</p>
-<p class="p1"><span class="Apple-converted-space">            </span>updateCharts();</p>
-<p class="p1"><span class="Apple-converted-space">            </span>updateForecasting();</p>
-<p class="p1"><span class="Apple-converted-space">        </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const moveLead = (id, newStatus) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const leadIndex = leads.findIndex(l =&gt; l.id === id);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (leadIndex !== -1) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>if (Array.isArray(newStatus)) return;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const oldStatus = leads[leadIndex].status;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>leads[leadIndex].status = newStatus;</p>
-<p class="p2"><span class="Apple-converted-space">                </span></p>
-<p class="p1"><span class="Apple-converted-space">                </span>// Add an automated activity for status change</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const today = new Date().toISOString().split('T')[0];</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const activityType = newStatus === 'Won' ? 'Closed Won' : newStatus === 'Lost' ? 'Closed Lost' : 'Status Change';</p>
-<p class="p1"><span class="Apple-converted-space">                </span>leads[leadIndex].activities.push({</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>date: today,</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>type: activityType,</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>description: `Moved from ${oldStatus} to ${newStatus}.`</p>
-<p class="p1"><span class="Apple-converted-space">                </span>});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>renderKanban();</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const updateForecasting = () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>let expectedValue = 0;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>let totalLeads = leads.length;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>leads.forEach(lead =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const probability = STATUS_MAP[lead.status] ? STATUS_MAP[lead.status].prob : 0;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>expectedValue += lead.value * probability;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('forecast-value').textContent = `$${Math.round(expectedValue).toLocaleString()}`;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('total-leads').textContent = totalLeads;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>// --- Lead Detail Modal Functions ---</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const openEditModal = (id) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const lead = leads.find(l =&gt; l.id === id);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (!lead) return;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>currentEditingLeadId = id;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>// Populate form fields</p>
-<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('modal-lead-name').textContent = lead.name;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('edit-lead-id').value = id;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('edit-name').value = lead.name;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('edit-source').value = lead.source;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('edit-value').value = lead.value;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('modal-score').textContent = lead.score;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>renderActivityTimeline(lead.activities);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>const modal = document.getElementById('leadDetailModal');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>modal.classList.remove('invisible', 'opacity-0');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>modal.classList.add('visible', 'opacity-100');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const closeModal = () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const modal = document.getElementById('leadDetailModal');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>modal.classList.add('invisible', 'opacity-0');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>modal.classList.remove('visible', 'opacity-100');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>currentEditingLeadId = null;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const saveLeadDetails = () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const id = Number(document.getElementById('edit-lead-id').value);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const leadIndex = leads.findIndex(l =&gt; l.id === id);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (leadIndex !== -1) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const newName = document.getElementById('edit-name').value;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const newSource = document.getElementById('edit-source').value;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const newValue = Number(document.getElementById('edit-value').value);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>leads[leadIndex].name = newName;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>leads[leadIndex].source = newSource;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>leads[leadIndex].value = newValue;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>leads[leadIndex].score = calculateLeadScore(newSource, newValue);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>document.getElementById('modal-score').textContent = leads[leadIndex].score;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>document.getElementById('modal-lead-name').textContent = newName;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">                </span>renderKanban();</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const renderActivityTimeline = (activities) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const timelineDiv = document.getElementById('activity-timeline');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>timelineDiv.innerHTML = '';</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>const sortedActivities = [...activities].sort((a, b) =&gt; new Date(b.date) - new Date(a.date));</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (sortedActivities.length === 0) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>timelineDiv.innerHTML = '&lt;p class="text-gray-500 italic"&gt;No activities recorded for this lead.&lt;/p&gt;';</p>
-<p class="p1"><span class="Apple-converted-space">                </span>return;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>sortedActivities.forEach(activity =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const element = document.createElement('div');</p>
-<p class="p1"><span class="Apple-converted-space">                </span>element.className = 'relative pl-8 border-l-2 border-indigo-200';</p>
-<p class="p1"><span class="Apple-converted-space">                </span>element.innerHTML = `</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="absolute w-3 h-3 bg-indigo-500 rounded-full mt-1.5 -left-1.5"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="text-xs text-indigo-600 font-medium"&gt;${activity.date}&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="mt-0.5 text-sm font-semibold text-gray-800"&gt;${activity.type}&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;p class="text-xs text-gray-600 mb-4"&gt;${activity.description}&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>`;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>timelineDiv.appendChild(element);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>});</p>
-<p class="p1"><span class="Apple-converted-space">        </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const addActivity = (form) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const type = form.activityType.value;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const description = form.activityDescription.value;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const date = new Date().toISOString().split('T')[0];</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>const leadIndex = leads.findIndex(l =&gt; l.id === currentEditingLeadId);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (leadIndex !== -1) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>const newActivity = { date, type, description };</p>
-<p class="p1"><span class="Apple-converted-space">                </span>leads[leadIndex].activities.push(newActivity);</p>
-<p class="p1"><span class="Apple-converted-space">                </span>renderActivityTimeline(leads[leadIndex].activities);</p>
-<p class="p1"><span class="Apple-converted-space">                </span>form.reset();</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>};</p>
-<p class="p2"><br></p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>// --- Charting Functions (Updated) ---</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const updateCharts = () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const statusCounts = leads.reduce((acc, lead) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>acc[lead.status] = (acc[lead.status] || 0) + 1;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>return acc;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}, {});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>const barLabels = ['New', 'Working', 'Proposal', 'Won', 'Lost'];</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const barData = barLabels.map(status =&gt; statusCounts[status] || 0);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>const wonCount = statusCounts.Won || 0;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const lostCount = statusCounts.Lost || 0;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const totalOutcomes = wonCount + lostCount;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>// Chart.js Bar Chart: Pipeline Distribution</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const barCtx = document.getElementById('pipelineBarChart').getContext('2d');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (pipelineBarChart) pipelineBarChart.destroy();</p>
-<p class="p1"><span class="Apple-converted-space">            </span>pipelineBarChart = new Chart(barCtx, {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>type: 'bar',</p>
-<p class="p1"><span class="Apple-converted-space">                </span>data: {</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>labels: barLabels.map(l =&gt; abbreviateLabel(l, 10)),</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>datasets: [{</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>label: 'Leads Count',</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>data: barData,</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>backgroundColor: ['#e5e7eb', '#bfdbfe', '#fef3c7', '#dcfce7', '#fee2e2'],</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>borderColor: ['#9ca3af', '#60a5fa', '#fcd34d', '#4ade80', '#f87171'],</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>borderWidth: 1</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>}]</p>
-<p class="p1"><span class="Apple-converted-space">                </span>},</p>
-<p class="p1"><span class="Apple-converted-space">                </span>options: {</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>responsive: true,</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>maintainAspectRatio: false,</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>plugins: {</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>legend: { display: false },</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>tooltip: {</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>callbacks: {</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>title: (items) =&gt; items[0].label.replace(/,/g, ' '),</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>label: (item) =&gt; `Leads: ${item.formattedValue}`</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>},</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>scales: {</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>y: { beginAtZero: true, suggestedMax: Math.max(...barData) + 2 },</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>x: { ticks: { callback: (val, index) =&gt; barLabels[index] } }</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">                </span>}</p>
-<p class="p1"><span class="Apple-converted-space">            </span>});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>// Chart.js Doughnut Chart: Overall Outcome Ratio</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const doughnutCtx = document.getElementById('conversionDoughnutChart').getContext('2d');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (conversionDoughnutChart) conversionDoughnutChart.destroy();</p>
-<p class="p1"><span class="Apple-converted-space">            </span>conversionDoughnutChart = new Chart(doughnutCtx, {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>type: 'doughnut',</p>
-<p class="p1"><span class="Apple-converted-space">                </span>data: {</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>labels: ['Closed Won', 'Closed Lost'],</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>datasets: [{</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>data: [wonCount, lostCount],</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>backgroundColor: ['#10b981', '#ef4444'],</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>hoverOffset: 4</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>}]</p>
-<p class="p1"><span class="Apple-converted-space">                </span>},</p>
-<p class="p1"><span class="Apple-converted-space">                </span>options: {</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>responsive: true,</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>maintainAspectRatio: false,</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>plugins: {</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>legend: { position: 'bottom' },</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>tooltip: {</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>callbacks: {</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>label: (context) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">                                    </span>const total = totalOutcomes;</p>
-<p class="p1"><span class="Apple-converted-space">                                    </span>const value = context.parsed;</p>
-<p class="p1"><span class="Apple-converted-space">                                    </span>const percentage = total &gt; 0 ? ((value / total) * 100).toFixed(1) : 0;</p>
-<p class="p1"><span class="Apple-converted-space">                                    </span>return `${context.label}: ${value} (${percentage}%)`;</p>
-<p class="p1"><span class="Apple-converted-space">                                </span>}</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">                </span>}</p>
-<p class="p1"><span class="Apple-converted-space">            </span>});</p>
-<p class="p1"><span class="Apple-converted-space">        </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>window.onload = () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>renderKanban();</p>
-<p class="p1"><span class="Apple-converted-space">        </span>};</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/script&gt;</p>
-<p class="p1">&lt;/body&gt;</p>
-<p class="p1">&lt;/html&gt;</p>
+<body class="bg-gray-50 font-inter text-gray-800">
+
+    <div id="app" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <header class="mb-8">
+            <h1 class="text-4xl font-extrabold text-indigo-700">Lead Pipeline Control Center V2.0</h1>
+            <p class="mt-2 text-lg text-gray-500">
+                Manage, score, and forecast your lead pipeline with detailed activity tracking.
+            </p>
+        </header>
+
+        <!-- Pipeline Forecasting Panel -->
+        <section id="forecasting-panel" class="bg-indigo-600 text-white p-4 sm:p-6 rounded-xl shadow-lg mb-8 flex flex-col sm:flex-row justify-between items-center">
+            <div>
+                <span class="text-sm font-medium opacity-80">Expected Pipeline Value Forecast</span>
+                <p id="forecast-value" class="text-3xl sm:text-4xl font-extrabold mt-1">$0</p>
+            </div>
+            <div class="mt-3 sm:mt-0 text-right">
+                <span class="text-sm font-medium opacity-80">Total Leads in Pipeline</span>
+                <p id="total-leads" class="text-3xl sm:text-4xl font-extrabold mt-1">0</p>
+            </div>
+        </section>
+
+        <section id="kanban-overview" class="bg-white p-6 sm:p-8 rounded-xl shadow-lg mb-8">
+            <h2 class="text-2xl font-bold text-gray-700 mb-4 border-b pb-2">Interactive Pipeline Board</h2>
+            <p class="text-gray-600 mb-6">
+                Click any card to view activities and edit details. Use the action buttons to manage lead status.
+            </p>
+            <div id="kanban-board" class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div id="col-New" class="p-3 bg-gray-100 rounded-lg kanban-col shadow-inner">
+                    <h3 class="text-base font-semibold text-gray-700 mb-3 flex items-center">
+                        <span class="text-lg mr-2">👤</span> New Lead (MQL)
+                    </h3>
+                    <div class="space-y-3" data-status="New"></div>
+                </div>
+                <div id="col-Working" class="p-3 bg-blue-100 rounded-lg kanban-col shadow-inner">
+                    <h3 class="text-base font-semibold text-blue-700 mb-3 flex items-center">
+                        <span class="text-lg mr-2">📞</span> Working (SQL)
+                    </h3>
+                    <div class="space-y-3" data-status="Working"></div>
+                </div>
+                <div id="col-Proposal" class="p-3 bg-yellow-100 rounded-lg kanban-col shadow-inner">
+                    <h3 class="text-base font-semibold text-yellow-700 mb-3 flex items-center">
+                        <span class="text-lg mr-2">📄</span> Proposal Stage
+                    </h3>
+                    <div class="space-y-3" data-status="Proposal"></div>
+                </div>
+                <div id="col-Won" class="p-3 bg-green-100 rounded-lg kanban-col shadow-inner">
+                    <h3 class="text-base font-semibold text-green-700 mb-3 flex items-center">
+                        <span class="text-lg mr-2">✅</span> Closed Won
+                    </h3>
+                    <div class="space-y-3" data-status="Won"></div>
+                </div>
+                <div id="col-Lost" class="p-3 bg-red-100 rounded-lg kanban-col shadow-inner">
+                    <h3 class="text-base font-semibold text-red-700 mb-3 flex items-center">
+                        <span class="text-lg mr-2">❌</span> Closed Lost
+                    </h3>
+                    <div class="space-y-3" data-status="Lost"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="analytics-section" class="grid md:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold text-gray-700 mb-4 border-b pb-2">Pipeline Distribution</h2>
+                <p class="text-gray-600 mb-4">
+                    This bar chart shows the current count of active leads in each stage, offering an immediate snapshot of pipeline health.
+                </p>
+                <div class="chart-container">
+                    <canvas id="pipelineBarChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold text-gray-700 mb-4 border-b pb-2">Overall Outcome Ratio</h2>
+                <p class="text-gray-600 mb-4">
+                    The doughnut chart illustrates the overall ratio of Won vs. Lost leads, reflecting final conversion effectiveness.
+                </p>
+                <div class="chart-container">
+                    <canvas id="conversionDoughnutChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="insights-section" class="bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+            <h2 class="text-2xl font-bold text-gray-700 mb-4 border-b pb-2">Key Report Insights</h2>
+            <div class="grid md:grid-cols-3 gap-6 text-sm">
+                <div class="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <h3 class="font-semibold text-indigo-700 mb-1 flex items-center"><span class="mr-2 text-xl">💡</span> Finding 1: Qualification</h3>
+                    <p class="text-gray-700">Leads moved from 'New' to 'Working' within 48 hours show a 35% higher close rate. Speed is critical for MQL-to-SQL conversion.</p>
+                </div>
+                <div class="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <h3 class="font-semibold text-indigo-700 mb-1 flex items-center"><span class="mr-2 text-xl">📊</span> Finding 2: Proposal Impact</h3>
+                    <p class="text-gray-700">The primary factor for 'Closed Lost' is high price sensitivity at the 'Proposal' stage. Need better pre-qualification on budget.</p>
+                </div>
+                <div class="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <h3 class="font-semibold text-indigo-700 mb-1 flex items-center"><span class="mr-2 text-xl">🚀</span> Recommendation</h3>
+                    <p class="text-gray-700">Implement an automated follow-up sequence for all 'Closed Lost' leads to transition them into a 90-day 'Nurture' campaign.</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Lead Detail/Edit Modal -->
+    <div id="leadDetailModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 invisible opacity-0">
+        <div class="bg-white rounded-xl w-full max-w-2xl shadow-2xl transform transition-all overflow-y-auto max-h-[90vh]">
+            <div class="p-6">
+                <div class="flex justify-between items-start border-b pb-3 mb-4">
+                    <h3 class="text-2xl font-bold text-gray-700" id="modal-lead-name">Lead Detail</h3>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition">
+                        <span class="text-xl font-bold">&times;</span>
+                    </button>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Edit Form -->
+                    <div>
+                        <h4 class="text-xl font-semibold text-indigo-600 mb-3">Edit Lead Information</h4>
+                        <form id="editLeadForm" onsubmit="event.preventDefault(); saveLeadDetails();">
+                            <input type="hidden" id="edit-lead-id">
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="edit-name" class="block text-sm font-medium text-gray-700">Company Name</label>
+                                    <input type="text" id="edit-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                                </div>
+                                <div>
+                                    <label for="edit-source" class="block text-sm font-medium text-gray-700">Source</label>
+                                    <select id="edit-source" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                                        <option value="Webinar">Webinar</option>
+                                        <option value="Referral">Referral</option>
+                                        <option value="Organic Search">Organic Search</option>
+                                        <option value="Paid Ads">Paid Ads</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="edit-value" class="block text-sm font-medium text-gray-700">Value ($)</label>
+                                    <input type="number" id="edit-value" min="0" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                                </div>
+                                <div class="p-3 bg-gray-100 rounded-lg flex justify-between items-center">
+                                    <span class="text-sm font-medium text-gray-700">Automated Score:</span>
+                                    <span id="modal-score" class="text-lg font-bold text-indigo-600">--</span>
+                                </div>
+                                <div>
+                                    <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                        Save Changes
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Activity Tracking Timeline -->
+                    <div>
+                        <h4 class="text-xl font-semibold text-indigo-600 mb-3">Activity Timeline</h4>
+                        <div id="activity-timeline" class="space-y-4 max-h-80 overflow-y-auto p-2">
+                            <!-- Activities will be rendered here -->
+                        </div>
+                        <h4 class="text-lg font-semibold text-gray-700 mt-4 mb-2">Add New Activity</h4>
+                        <form id="addActivityForm" onsubmit="event.preventDefault(); addActivity(this);">
+                            <div class="space-y-2">
+                                <input type="text" name="activityType" placeholder="Type (e.g., Call, Email, Meeting)" class="block w-full border border-gray-300 rounded-md p-2 text-sm" required>
+                                <input type="text" name="activityDescription" placeholder="Description of action" class="block w-full border border-gray-300 rounded-md p-2 text-sm" required>
+                                <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                                    Add Activity
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const INITIAL_LEADS = [
+            { id: 1, name: 'Alpha Solutions', status: 'Working', source: 'Webinar', value: 12000, activities: [{date: '2024-10-01', type: 'Call', description: 'Initial contact call. Identified need for service A.'}, {date: '2024-10-05', type: 'Email', description: 'Sent proposal overview.'}] },
+            { id: 2, name: 'Beta Systems Inc.', status: 'New', source: 'Referral', value: 8500, activities: [{date: '2024-10-10', type: 'Call', description: 'Referral warm lead. Needs follow-up with demo.'}] },
+            { id: 3, name: 'Gamma Corp', status: 'Proposal', source: 'Organic Search', value: 25000, activities: [{date: '2024-10-15', type: 'Meeting', description: 'Presentation of full proposal and pricing.'}, {date: '2024-10-20', type: 'Email', description: 'Followed up with case studies.'}] },
+            { id: 4, name: 'Delta Technologies', status: 'Working', source: 'Paid Ads', value: 5000, activities: [{date: '2024-09-25', type: 'Email', description: 'Sent initial discovery questions.'}] },
+            { id: 5, name: 'Epsilon Group', status: 'Won', source: 'Webinar', value: 18000, activities: [{date: '2024-09-01', type: 'Won', description: 'Contract signed. Onboarding started.'}] },
+            { id: 6, name: 'Zeta Innovations', status: 'Lost', source: 'Referral', value: 9000, activities: [{date: '2024-09-15', type: 'Lost', description: 'Lost to competitor due to budget constraints.'}] },
+            { id: 7, name: 'Eta Ventures', status: 'New', source: 'Organic Search', value: 3000, activities: [] },
+            { id: 8, name: 'Theta Holdings', status: 'Working', source: 'Referral', value: 45000, activities: [{date: '2024-10-28', type: 'Meeting', description: 'Discovery meeting. High potential lead.'}] },
+        ];
+
+        let leads = INITIAL_LEADS.map(lead => ({
+            ...lead,
+            id: lead.id,
+            score: calculateLeadScore(lead.source, lead.value) // Calculate initial score
+        }));
+
+        let pipelineBarChart;
+        let conversionDoughnutChart;
+        let currentEditingLeadId = null;
+
+        const STATUS_MAP = {
+            New: { label: 'Working', next: 'Working', prev: null, color: 'text-gray-700', bg: 'bg-gray-100', prob: 0.10 },
+            Working: { label: 'Proposal', next: 'Proposal', prev: 'New', color: 'text-blue-700', bg: 'bg-blue-100', prob: 0.40 },
+            Proposal: { label: 'Finalize', next: ['Won', 'Lost'], prev: 'Working', color: 'text-yellow-700', bg: 'bg-yellow-100', prob: 0.75 },
+            Won: { label: 'Archived', next: null, prev: 'Proposal', color: 'text-green-700', bg: 'bg-green-100', prob: 1.00 },
+            Lost: { label: 'Archived', next: null, prev: 'Proposal', color: 'text-red-700', bg: 'bg-red-100', prob: 0.00 }
+        };
+
+        const abbreviateLabel = (label, maxChars = 16) => {
+            if (label.length <= maxChars) return label;
+            let words = label.split(' ');
+            let lines = [];
+            let currentLine = '';
+            words.forEach(word => {
+                if ((currentLine + ' ' + word).trim().length > maxChars) {
+                    lines.push(currentLine.trim());
+                    currentLine = word;
+                } else {
+                    currentLine += ' ' + word;
+                }
+            });
+            lines.push(currentLine.trim());
+            return lines;
+        };
+
+        function getScoreColor(score) {
+            if (score > 30) return 'bg-score-high';
+            if (score > 15) return 'bg-score-medium';
+            return 'bg-score-low';
+        }
+
+        function calculateLeadScore(source, value) {
+            let score = 0;
+            const valueNum = Number(value);
+
+            // Source Scoring
+            switch (source) {
+                case 'Referral': score += 20; break;
+                case 'Organic Search': score += 15; break;
+                case 'Webinar': score += 10; break;
+                case 'Paid Ads': score += 5; break;
+            }
+
+            // Value Scoring
+            if (valueNum > 20000) {
+                score += 20;
+            } else if (valueNum >= 10000) {
+                score += 10;
+            } else {
+                score += 5;
+            }
+
+            return score;
+        }
+
+        const renderKanban = () => {
+            document.querySelectorAll('#kanban-board > div > div').forEach(container => container.innerHTML = '');
+
+            leads.forEach(lead => {
+                const colContainer = document.querySelector(`[data-status="${lead.status}"]`);
+                if (!colContainer) return;
+
+                const statusConfig = STATUS_MAP[lead.status];
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-lg card-shadow text-sm ${statusConfig.bg} border-l-4 border-indigo-500 cursor-pointer hover:shadow-lg transition`;
+                card.setAttribute('onclick', `openEditModal(${lead.id})`);
+                card.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <p class="font-semibold text-gray-900">${lead.name}</p>
+                        <span class="score-badge ${getScoreColor(lead.score)}">${lead.score}</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-0.5">Value: $${lead.value.toLocaleString()}</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        ${lead.status !== 'Won' && lead.status !== 'Lost' ? `
+                            <button onclick="event.stopPropagation(); moveLead(${lead.id}, '${statusConfig.next}')"
+                                class="flex-grow px-2 py-1 text-xs font-medium text-white bg-indigo-500 rounded-md hover:bg-indigo-600 transition">
+                                Move to ${STATUS_MAP[statusConfig.next]?.label || statusConfig.next}
+                            </button>
+                        ` : ''}
+                        ${lead.status !== 'Won' && lead.status !== 'Lost' && statusConfig.prev ? `
+                            <button onclick="event.stopPropagation(); moveLead(${lead.id}, '${statusConfig.prev}')"
+                                class="px-2 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition">
+                                Back
+                            </button>
+                        ` : ''}
+                        ${lead.status === 'Proposal' ? `
+                            <button onclick="event.stopPropagation(); moveLead(${lead.id}, 'Won')"
+                                class="flex-grow px-2 py-1 text-xs font-medium text-white bg-green-500 rounded-md hover:bg-green-600 transition">
+                                Win
+                            </button>
+                            <button onclick="event.stopPropagation(); moveLead(${lead.id}, 'Lost')"
+                                class="flex-grow px-2 py-1 text-xs font-medium text-white bg-red-500 rounded-md hover:bg-red-600 transition">
+                                Lose
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+                colContainer.appendChild(card);
+            });
+            updateCharts();
+            updateForecasting();
+        };
+
+        const moveLead = (id, newStatus) => {
+            const leadIndex = leads.findIndex(l => l.id === id);
+            if (leadIndex !== -1) {
+                if (Array.isArray(newStatus)) return;
+                const oldStatus = leads[leadIndex].status;
+                leads[leadIndex].status = newStatus;
+                
+                // Add an automated activity for status change
+                const today = new Date().toISOString().split('T')[0];
+                const activityType = newStatus === 'Won' ? 'Closed Won' : newStatus === 'Lost' ? 'Closed Lost' : 'Status Change';
+                leads[leadIndex].activities.push({
+                    date: today,
+                    type: activityType,
+                    description: `Moved from ${oldStatus} to ${newStatus}.`
+                });
+
+                renderKanban();
+            }
+        };
+
+        const updateForecasting = () => {
+            let expectedValue = 0;
+            let totalLeads = leads.length;
+
+            leads.forEach(lead => {
+                const probability = STATUS_MAP[lead.status] ? STATUS_MAP[lead.status].prob : 0;
+                expectedValue += lead.value * probability;
+            });
+
+            document.getElementById('forecast-value').textContent = `$${Math.round(expectedValue).toLocaleString()}`;
+            document.getElementById('total-leads').textContent = totalLeads;
+        };
+
+        // --- Lead Detail Modal Functions ---
+
+        const openEditModal = (id) => {
+            const lead = leads.find(l => l.id === id);
+            if (!lead) return;
+
+            currentEditingLeadId = id;
+
+            // Populate form fields
+            document.getElementById('modal-lead-name').textContent = lead.name;
+            document.getElementById('edit-lead-id').value = id;
+            document.getElementById('edit-name').value = lead.name;
+            document.getElementById('edit-source').value = lead.source;
+            document.getElementById('edit-value').value = lead.value;
+            document.getElementById('modal-score').textContent = lead.score;
+
+            renderActivityTimeline(lead.activities);
+
+            const modal = document.getElementById('leadDetailModal');
+            modal.classList.remove('invisible', 'opacity-0');
+            modal.classList.add('visible', 'opacity-100');
+        };
+
+        const closeModal = () => {
+            const modal = document.getElementById('leadDetailModal');
+            modal.classList.add('invisible', 'opacity-0');
+            modal.classList.remove('visible', 'opacity-100');
+            currentEditingLeadId = null;
+        };
+
+        const saveLeadDetails = () => {
+            const id = Number(document.getElementById('edit-lead-id').value);
+            const leadIndex = leads.findIndex(l => l.id === id);
+
+            if (leadIndex !== -1) {
+                const newName = document.getElementById('edit-name').value;
+                const newSource = document.getElementById('edit-source').value;
+                const newValue = Number(document.getElementById('edit-value').value);
+
+                leads[leadIndex].name = newName;
+                leads[leadIndex].source = newSource;
+                leads[leadIndex].value = newValue;
+                leads[leadIndex].score = calculateLeadScore(newSource, newValue);
+
+                document.getElementById('modal-score').textContent = leads[leadIndex].score;
+                document.getElementById('modal-lead-name').textContent = newName;
+
+                renderKanban();
+            }
+        };
+
+        const renderActivityTimeline = (activities) => {
+            const timelineDiv = document.getElementById('activity-timeline');
+            timelineDiv.innerHTML = '';
+
+            const sortedActivities = [...activities].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (sortedActivities.length === 0) {
+                timelineDiv.innerHTML = '<p class="text-gray-500 italic">No activities recorded for this lead.</p>';
+                return;
+            }
+
+            sortedActivities.forEach(activity => {
+                const element = document.createElement('div');
+                element.className = 'relative pl-8 border-l-2 border-indigo-200';
+                element.innerHTML = `
+                    <div class="absolute w-3 h-3 bg-indigo-500 rounded-full mt-1.5 -left-1.5"></div>
+                    <div class="text-xs text-indigo-600 font-medium">${activity.date}</div>
+                    <div class="mt-0.5 text-sm font-semibold text-gray-800">${activity.type}</div>
+                    <p class="text-xs text-gray-600 mb-4">${activity.description}</p>
+                `;
+                timelineDiv.appendChild(element);
+            });
+        };
+
+        const addActivity = (form) => {
+            const type = form.activityType.value;
+            const description = form.activityDescription.value;
+            const date = new Date().toISOString().split('T')[0];
+
+            const leadIndex = leads.findIndex(l => l.id === currentEditingLeadId);
+            if (leadIndex !== -1) {
+                const newActivity = { date, type, description };
+                leads[leadIndex].activities.push(newActivity);
+                renderActivityTimeline(leads[leadIndex].activities);
+                form.reset();
+            }
+        };
+
+
+        // --- Charting Functions (Updated) ---
+
+        const updateCharts = () => {
+            const statusCounts = leads.reduce((acc, lead) => {
+                acc[lead.status] = (acc[lead.status] || 0) + 1;
+                return acc;
+            }, {});
+
+            const barLabels = ['New', 'Working', 'Proposal', 'Won', 'Lost'];
+            const barData = barLabels.map(status => statusCounts[status] || 0);
+
+            const wonCount = statusCounts.Won || 0;
+            const lostCount = statusCounts.Lost || 0;
+            const totalOutcomes = wonCount + lostCount;
+
+            // Chart.js Bar Chart: Pipeline Distribution
+            const barCtx = document.getElementById('pipelineBarChart').getContext('2d');
+            if (pipelineBarChart) pipelineBarChart.destroy();
+            pipelineBarChart = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: barLabels.map(l => abbreviateLabel(l, 10)),
+                    datasets: [{
+                        label: 'Leads Count',
+                        data: barData,
+                        backgroundColor: ['#e5e7eb', '#bfdbfe', '#fef3c7', '#dcfce7', '#fee2e2'],
+                        borderColor: ['#9ca3af', '#60a5fa', '#fcd34d', '#4ade80', '#f87171'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => items[0].label.replace(/,/g, ' '),
+                                label: (item) => `Leads: ${item.formattedValue}`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, suggestedMax: Math.max(...barData) + 2 },
+                        x: { ticks: { callback: (val, index) => barLabels[index] } }
+                    }
+                }
+            });
+
+            // Chart.js Doughnut Chart: Overall Outcome Ratio
+            const doughnutCtx = document.getElementById('conversionDoughnutChart').getContext('2d');
+            if (conversionDoughnutChart) conversionDoughnutChart.destroy();
+            conversionDoughnutChart = new Chart(doughnutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Closed Won', 'Closed Lost'],
+                    datasets: [{
+                        data: [wonCount, lostCount],
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const total = totalOutcomes;
+                                    const value = context.parsed;
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return `${context.label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        };
+
+        window.onload = () => {
+            renderKanban();
+        };
+    </script>
 </body>
 </html>
